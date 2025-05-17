@@ -18,3 +18,8 @@ storage.miniverse.dev {
   reverse_proxy minio:9001
   tls internal
 }
+
+cms.miniverse.dev {
+  reverse_proxy wordpress:80
+  tls internal
+}

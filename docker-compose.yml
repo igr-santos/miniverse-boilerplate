@@ -49,6 +49,40 @@ services:
     networks:
       - miniverse_net
 
+  wordpress:
+    image: wordpress
+    container_name: wordpress
+    environment:
+      WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-true}
+      WORDPRESS_DB_NAME: wp
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_USER: user
+      WORDPRESS_DB_PASSWORD: pass
+      PHP_MEMORY_LIMIT: 512M
+      UPLOAD_MAX_FILESIZE: 128M
+      POST_MAX_SIZE: 128M
+    expose:
+      - "80"
+    extra_hosts:
+      - "auth.miniverse.dev:172.24.0.8"
+    volumes:
+      - ./wordpress:/var/www/html
+    networks:
+      - miniverse_net
+
+  mysql:
+    image: mysql
+    container_name: mysql
+    environment:
+      - MYSQL_DATABASE=wp
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - MYSQL_ROOT_PASSWORD=pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - miniverse_net
+
   postgres:
     image: postgres:15
     container_name: postgres
@@ -93,6 +127,7 @@ services:
       - miniverse_net
 
 volumes:
+  mysql_data:
   postgres_data:
   minio_data:
   caddy_data:
