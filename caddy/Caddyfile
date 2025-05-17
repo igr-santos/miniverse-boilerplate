@@ -1,0 +1,20 @@
+{
+  # Usa certificados autoassinados locais
+  local_certs
+  auto_https disable_redirects
+}
+
+auth.miniverse.dev {
+  reverse_proxy keycloak:8080
+  tls internal
+}
+
+mail.miniverse.dev {
+  reverse_proxy mailhog:8025
+  tls internal
+}
+
+storage.miniverse.dev {
+  reverse_proxy minio:9001
+  tls internal
+}

@@ -1,0 +1,103 @@
+services:
+  caddy:
+    image: caddy:2.7
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - miniverse_net
+    depends_on:
+      - keycloak
+      - mailhog
+      - minio
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    container_name: keycloak
+    # Define a URL explícita para o hostname externo com HTTPS.
+    # Garante que o hostname seja estritamente seguido (evita acessos por outros domínios).
+    # Exige que todos os acessos usem HTTPS.
+    # Aplica restrições também aos canais de backchannel (como chamadas REST da API).
+    # Informa ao Keycloak que ele está atrás de um proxy (Caddy) que envia cabeçalhos X-Forwarded-*.
+    command: >-
+      start-dev
+      --hostname-url=https://auth.miniverse.dev
+      --hostname-strict=true
+      --hostname-strict-https=true
+      --hostname-strict-backchannel=true
+      --proxy-headers=xforwarded
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: segredo123
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      # Define a URL pública da interface do Keycloak.
+      KC_FRONTEND_URL: https://auth.miniverse.dev
+      # Define o hostname principal do Keycloak (usado internamente).
+      KEYCLOAK_HOSTNAME: auth.miniverse.dev
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    networks:
+      - miniverse_net
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: segredo123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/docker-entrypoint-initdb:/docker-entrypoint-initdb.d
+    networks:
+      - miniverse_net
+
+  mailhog:
+    image: mailhog/mailhog
+    platform: linux/amd64
+    container_name: mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    expose:
+      - "8025"
+    networks:
+      - miniverse_net
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server --console-address ":9001" /data
+    environment:
+      MINIO_ROOT_USER: miniverse
+      MINIO_ROOT_PASSWORD: supersecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    expose:
+      - "9000"
+      - "9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - miniverse_net
+
+volumes:
+  postgres_data:
+  minio_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  miniverse_net:
+    driver: bridge
